@@ -35,9 +35,9 @@ const Header = ({ activeSlide, onNavClick, headerRef }) => {
         {location.pathname === '/' && navItems.map(item => (
           <button
             key={item.id}
-            className={activeSlide === item.id ? 'active' : ''}
+            className={`nav-link ${activeSlide === item.id ? 'active' : ''}`}
             onClick={() => handleNavClick(item.id)}
-            type="button"  // important to prevent form submission if inside a form
+            type="button"
           >
             {item.label}
           </button>

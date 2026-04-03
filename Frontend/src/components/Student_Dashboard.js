@@ -111,7 +111,7 @@ export default function StudentDashboard() {
 
       {/* Dashboard Content */}
       <div className="dashboard-container">
-        <h1 className="dashboard-title">Student Dashboard</h1>
+        <h1 className="dashboard-title">Student <span>Dashboard</span></h1>
         <p className="dashboard-subtitle">
           Track your progress and continue learning
         </p>
@@ -178,34 +178,62 @@ export default function StudentDashboard() {
         </div>
 
         {/* My Courses */}
-        <h2 className="section-title">My Courses</h2>
-        <div className="course-card">
-          <span className="badge">In Progress</span>
-          <h3>5G Technology Training</h3>
-          <p>
-            5-day comprehensive training on 5G networks, architecture, and
-            implementation
-          </p>
+        {/* Courses + Instructors side-by-side */}
+        <div className="courses-instructors-layout">
 
-          <div className="progress-section">
-            <div className="progress-labels">
-              <span>Progress</span>
-              <span>{completedDays} of 5 days</span>
-            </div>
-            <div className="progress-bar">
-              <div
-                className="progress-fill"
-                style={{ width: `${(completedDays / 5) * 100}%` }}
-              ></div>
+          {/* Left: My Courses */}
+          <div>
+            <h2 className="section-title">My Courses</h2>
+            <div className="course-progress-card">
+              <span className="badge">In Progress</span>
+              <h3>ROS 2 Training</h3>
+              <p>
+                3-day comprehensive training on Architecture, Simulation, and Autonomy
+                implementation
+              </p>
+
+              <div className="progress-section">
+                <div className="progress-labels">
+                  <span>Progress</span>
+                  <span>{completedDays} of 5 days</span>
+                </div>
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill"
+                    style={{ width: `${(completedDays / 5) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              <button
+                className="primary-btn"
+                onClick={() => navigate("/courses/5g-training")}
+              >
+                Start Learning →
+              </button>
             </div>
           </div>
 
-          <button
-            className="primary-btn"
-            onClick={() => navigate("/courses/5g-training")}
-          >
-            Start Learning →
-          </button>
+          {/* Right: Instructors */}
+          <div>
+            <h2 className="section-title">Your Instructors</h2>
+            <div className="instructors-stack">
+              {[
+                { name: "Sheeram MV", initials: "SR", role: "Lead Instructor", color: "blue" },
+                { name: "Badrikanath Prahraj", initials: "BP", role: "Network Specialist", color: "purple" },
+                { name: "Abhishek S", initials: "AS", role: "5G Implementation", color: "green" },
+              ].map((inst) => (
+                <div className="instructor-row-card" key={inst.name}>
+                  <div className={`instructor-avatar ${inst.color}`}>{inst.initials}</div>
+                  <div>
+                    <h4>{inst.name}</h4>
+                    <p>{inst.role}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

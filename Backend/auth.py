@@ -50,10 +50,7 @@ def register():
                 "1": {"completed": False, "score": None},
                 "2": {"completed": False, "score": None},
                 "3": {"completed": False, "score": None},
-                "4": {"completed": False, "score": None},
-                "5": {"completed": False, "score": None},
             },
-            "finalAssessmentCompleted": False
         }
 
     users_collection.insert_one(user_data)

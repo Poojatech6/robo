@@ -24,6 +24,14 @@ import CoursesSlide from './components/slides/CoursesSlide';
 
 // Import Hooks & Styles
 import { useScrollSpy } from './hooks/useScrollSpy';
+
+// Training Days
+import Training from "./Training/Training";
+import Day1 from "./Training/Day1/Day1";
+import Day2 from "./Training/Day2/Day2";
+import Day3 from "./Training/Day3/Day3";
+import Test from "./Training/Test/Test";
+
 import './App.css';
 
 // 1. We create a "MainLanding" component to hold all your scrolling slides
@@ -113,6 +121,14 @@ function App() {
         {/* ADD THESE NEW DASHBOARD ROUTES HERE */}
         <Route path="/dashboard/student" element={<StudentDashboard token={token} />} />
         <Route path="/dashboard/mentor" element={<MentorDashboard token={token} />} />
+
+        <Route path="/courses/5g-training" element={<Training />} />
+        <Route path="courses/5g-training/day1" element={<Day1 />} />
+        <Route path="courses/5g-training/day2" element={<Day2 />} />
+        <Route path="courses/5g-training/day3" element={<Day3 />} />
+        <Route path="courses/5g-training/day1/test" element={<Test />} />
+        <Route path="courses/5g-training/day2/test" element={<Test />} />
+        <Route path="courses/5g-training/day3/test" element={<Test />} />
       </Routes>
     </Router>
   );

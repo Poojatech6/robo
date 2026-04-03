@@ -16,8 +16,7 @@ MONGO_URI = os.getenv("MONGODB_URI")
 client = MongoClient(MONGO_URI)
 db = client["learnflow"]
 users = db["users"]
-attempts = db["attempts"]
-
+# 'attempts' collection is no longer needed since we switched to 100% MCQs
 
 # ---------------------------------------
 # Save / Update Day Progress
@@ -40,6 +39,10 @@ def update_progress():
     if not user_id or not day:
         return jsonify({"success": False, "message": "Missing data"}), 400
 
+    # ✅ STRICT VALIDATION: Only allow Days 1, 2, and 3
+    if day not in ["1", "2", "3"]:
+        return jsonify({"success": False, "message": "Invalid day. Only Days 1, 2, and 3 are supported."}), 400
+
     try:
         user_object_id = ObjectId(user_id)
     except Exception:
@@ -58,7 +61,6 @@ def update_progress():
             "$set": {
                 "progress": {
                     "days": {},
-                    "finalAssessmentCompleted": False,
                     "createdAt": datetime.utcnow()
                 }
             }
@@ -74,55 +76,31 @@ def update_progress():
     if score is not None:
         update_data[f"progress.days.{day}.score"] = score
 
-    # Optional: store per-question attempt details if provided
-    # We separate short MCQ metadata (kept on the progress doc) from long
-    # theory responses which we store in a separate `attempts` collection.
+    # Store 15 MCQ metadata on the progress doc
     raw_questions = data.get("questions") or data.get("attempt")
     mcq_sanitized = []
-    theory_entries = []
+    
     if raw_questions and isinstance(raw_questions, list):
         for idx, q in enumerate(raw_questions):
             try:
                 qtext = (q.get("question") or q.get("q") or "")
-                qtype = q.get("type") or q.get("qtype") or ("theory" if q.get("answer") or q.get("selectedAnswer") and isinstance(q.get("selectedAnswer"), str) else "mcq")
-
-                if str(qtype).lower() == "mcq" or q.get("options"):
-                    mcq_sanitized.append({
-                        "question": qtext[:500],
-                        "difficulty": q.get("difficulty"),
-                        "correctAnswer": q.get("correctAnswer") if "correctAnswer" in q else q.get("correct"),
-                        "selectedAnswer": q.get("selectedAnswer") if "selectedAnswer" in q else q.get("selected"),
-                        "options": (q.get("options") or [])[:10],
-                    })
-                else:
-                    # theory entry: store minimal metadata here, full text goes to attempts collection
-                    theory_entries.append({
-                        "index": idx,
-                        "question": qtext[:2000],
-                        "expectedKeywords": q.get("expectedKeywords") or q.get("keyPoints") or [],
-                        "selectedAnswer": q.get("selectedAnswer") if "selectedAnswer" in q else q.get("answer") or q.get("selected"),
-                    })
+                # Only processing MCQs now
+                mcq_sanitized.append({
+                    "question": qtext[:500],
+                    "difficulty": q.get("difficulty"),
+                    "correctAnswer": q.get("correctAnswer") if "correctAnswer" in q else q.get("correct"),
+                    "selectedAnswer": q.get("selectedAnswer") if "selectedAnswer" in q else q.get("selected"),
+                    "options": (q.get("options") or [])[:10],
+                })
             except Exception:
                 continue
 
-        # attach MCQ metadata to progress doc
-        if mcq_sanitized:
-            update_data[f"progress.days.{day}.attempts"] = mcq_sanitized
-
-        # if there are theory answers, store them in `attempts` collection and reference them
-        if theory_entries:
-            attempt_doc = {
-                "userId": ObjectId(user_id),
-                "day": day,
-                "level": data.get("level"),
-                "createdAt": datetime.utcnow(),
-                "theoryResponses": theory_entries,
-            }
-            res = attempts.insert_one(attempt_doc)
-            update_data[f"progress.days.{day}.theoryRef"] = str(res.inserted_id)
-            update_data[f"progress.days.{day}.submittedAt"] = datetime.utcnow()
-            if data.get("level"):
-                update_data[f"progress.days.{day}.level"] = data.get("level")
+    # Attach MCQ metadata to progress doc
+    if mcq_sanitized:
+        update_data[f"progress.days.{day}.attempts"] = mcq_sanitized
+        update_data[f"progress.days.{day}.submittedAt"] = datetime.utcnow()
+        if data.get("level"):
+            update_data[f"progress.days.{day}.level"] = data.get("level")
 
     # 3️⃣ Update nested day safely
     users.update_one(
@@ -132,6 +110,10 @@ def update_progress():
 
     return jsonify({"success": True})
 
+
+# ---------------------------------------
+# Get Generic User Progress
+# ---------------------------------------
 @progress_bp.route("/<user_id>", methods=["GET"])
 def get_progress(user_id):
     try:
@@ -168,29 +150,13 @@ def get_progress(user_id):
         "completedDays": max_completed_day,
         "testsPassed": len(completed_days),
         "averageScore": f"{avg_score}%",
-        "finalAssessmentCompleted": progress.get(
-            "finalAssessmentCompleted", False
-        ),
         "progress": days
     })
 
-@progress_bp.route("/final", methods=["POST"])
-@jwt_required()
-def complete_final_assessment():
-    user_id = get_jwt_identity()
 
-    users.update_one(
-        {"_id": ObjectId(user_id)},
-        {
-            "$set": {
-                "progress.finalAssessmentCompleted": True,
-                "progress.updatedAt": datetime.utcnow()
-            }
-        }
-    )
-
-    return jsonify({"success": True})
-
+# ---------------------------------------
+# Get Own Progress via JWT
+# ---------------------------------------
 @progress_bp.route("/progress", methods=["GET"])
 @jwt_required()
 def get_progress_jwt():
@@ -200,7 +166,7 @@ def get_progress_jwt():
     if not user:
         return jsonify({"success": False, "message": "User not found"}), 404
 
-    # Keep the full progress object and expose the days map + final flag
+    # Keep the full progress object and expose the days map
     progress_obj = user.get("progress", {})
     days = progress_obj.get("days", {})
 
@@ -218,8 +184,7 @@ def get_progress_jwt():
         "progress": days,
         "completedDays": completed_days,
         "testsPassed": tests_passed,
-        "averageScore": average_score,
-        "finalAssessmentCompleted": bool(progress_obj.get("finalAssessmentCompleted", False))
+        "averageScore": average_score
     })
 
 
@@ -229,8 +194,7 @@ def get_progress_jwt():
 @progress_bp.route("/attempts/<user_id>/<day>", methods=["GET"])
 @jwt_required()
 def get_attempts_for_day(user_id, day):
-    """Return MCQ metadata (from progress.days.<day>.attempts) and
-    any stored theory responses from the `attempts` collection.
+    """Return MCQ metadata (from progress.days.<day>.attempts).
 
     Access rules:
     - Mentors/admins/teachers may view any student's full data.
@@ -274,21 +238,9 @@ def get_attempts_for_day(user_id, day):
             if isinstance(a, dict) and "correctAnswer" in a:
                 a.pop("correctAnswer", None)
 
-    theory_responses = None
-    theory_ref = day_data.get("theoryRef")
-    if theory_ref:
-        try:
-            att = attempts.find_one({"_id": ObjectId(theory_ref)})
-            if att:
-                # include the full theoryResponses only for mentors or the owner
-                theory_responses = att.get("theoryResponses", [])
-        except Exception:
-            theory_responses = None
-
     return jsonify({
         "success": True,
         "mcq": mcq_attempts,
-        "theory": theory_responses,
         "dayMeta": day_data,
     })
 
@@ -303,7 +255,6 @@ def get_attempts_for_day_by_email(email, day):
 
     # find user by email (case-insensitive)
     try:
-        # email passed via URL will be percent-encoded; Flask provides decoded value
         user_doc = users.find_one({"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}}, {"_id": 1, "progress": 1})
     except Exception:
         return jsonify({"success": False, "message": "Invalid email or DB error"}), 400
@@ -311,7 +262,6 @@ def get_attempts_for_day_by_email(email, day):
     if not user_doc:
         return jsonify({"success": False, "message": "User not found for email"}), 404
 
-    # now reuse same logic as get_attempts_for_day but without duplicating role lookup DB fetch
     # Resolve caller role
     try:
         caller_obj = users.find_one({"_id": ObjectId(caller_id)})
@@ -337,20 +287,9 @@ def get_attempts_for_day_by_email(email, day):
             if isinstance(a, dict) and "correctAnswer" in a:
                 a.pop("correctAnswer", None)
 
-    theory_responses = None
-    theory_ref = day_data.get("theoryRef")
-    if theory_ref:
-        try:
-            att = attempts.find_one({"_id": ObjectId(theory_ref)})
-            if att:
-                theory_responses = att.get("theoryResponses", [])
-        except Exception:
-            theory_responses = None
-
     return jsonify({
         "success": True,
         "mcq": mcq_attempts,
-        "theory": theory_responses,
         "dayMeta": day_data,
     })
 
@@ -358,11 +297,7 @@ def get_attempts_for_day_by_email(email, day):
 @progress_bp.route("/by-email/<path:email>", methods=["GET"])
 @jwt_required()
 def get_progress_by_email(email):
-    """Find user by email and return their `progress.days` map (no theory inlining).
-
-    Access rules: mentors/admins can view any student's progress; a student can
-    view their own progress.
-    """
+    """Find user by email and return their `progress.days` map."""
     caller_id = get_jwt_identity()
 
     # find user by email (case-insensitive)

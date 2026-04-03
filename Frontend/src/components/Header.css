@@ -50,7 +50,7 @@ nav#top-nav {
   gap: 35px; /* Creates spacing between Home, Care, Consult, etc. */
 }
 
-nav#top-nav a {
+nav#top-nav button.nav-link {
   font-family: "Outfit", sans-serif;
   font-weight: 600;
   font-size: 0.95rem;
@@ -58,16 +58,30 @@ nav#top-nav a {
   color: #333;
   cursor: pointer;
   position: relative;
+
+  /* 🔥 FULL RESET (this fixes your issue) */
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  margin: 0;
+
+  /* Remove default button appearance (important for Safari/Chrome) */
+  appearance: none;
+  -webkit-appearance: none;
+
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
-nav#top-nav a:hover,
-nav#top-nav a.active {
+/* Hover + Active */
+nav#top-nav button.nav-link:hover,
+nav#top-nav button.nav-link.active {
   color: #0066ff;
 }
 
-nav#top-nav a::after {
+/* Underline animation */
+nav#top-nav button.nav-link::after {
   content: "";
   position: absolute;
   bottom: -6px;
@@ -80,8 +94,8 @@ nav#top-nav a::after {
   transform-origin: center;
 }
 
-nav#top-nav a:hover::after,
-nav#top-nav a.active::after {
+nav#top-nav button.nav-link:hover::after,
+nav#top-nav button.nav-link.active::after {
   transform: translateX(-50%) scaleX(0.8);
 }
 
