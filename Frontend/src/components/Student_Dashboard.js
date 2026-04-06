@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./Dashboard.css";
+import API_BASE_URL from "../config";
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ export default function StudentDashboard() {
       }
 
       try {
-        const res = await fetch("http://localhost:5000/progress/progress", {
+        const res = await fetch(`${API_BASE_URL}/progress/progress`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -82,7 +83,7 @@ export default function StudentDashboard() {
 
                     if (authToken) {
                       try {
-                        await fetch("http://localhost:5000/api/logout", {
+                        await fetch(`${API_BASE_URL}/api/logout`, {
                           method: "POST",
                           headers: {
                             "Content-Type": "application/json",
@@ -211,7 +212,7 @@ export default function StudentDashboard() {
                 className="primary-btn"
                 onClick={() => navigate("/courses/5g-training")}
               >
-                Start Learning →
+                Start Assessment →
               </button>
             </div>
           </div>

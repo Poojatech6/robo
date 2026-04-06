@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "../Day.css"; // Updated CSS file
+import API_BASE_URL from "../../config";
 
 export default function Day1() {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ export default function Day1() {
         const token = sessionStorage.getItem("token");
         if (!token) return;
 
-        const res = await fetch("http://localhost:5000/progress/progress", {
+        const res = await fetch(`${API_BASE_URL}/progress/progress`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
