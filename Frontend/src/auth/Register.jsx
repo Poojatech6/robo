@@ -1,8 +1,8 @@
-// Register.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./Register.css";
+import API_BASE_URL from "../config";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -105,7 +105,7 @@ export default function Register() {
     };
 
     try {
-      const res = await fetch("http://localhost:5000/api/create-admin", {
+      const res = await fetch(`${API_BASE_URL}/api/create-admin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -150,7 +150,7 @@ export default function Register() {
     };
 
     try {
-      const res = await fetch("http://localhost:5000/api/register", {
+      const res = await fetch(`${API_BASE_URL}/api/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

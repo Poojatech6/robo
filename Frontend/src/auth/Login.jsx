@@ -1,8 +1,8 @@
-// Login.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./Login.css";
+import API_BASE_URL from "../config";
 
 export default function Login({ setToken }) {
   const navigate = useNavigate();
@@ -86,7 +86,7 @@ export default function Login({ setToken }) {
         : { role: "mentor", fullName: fullName.trim(), password };
 
     try {
-      const res = await fetch("http://localhost:5000/api/login", {
+      const res = await fetch(`${API_BASE_URL}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

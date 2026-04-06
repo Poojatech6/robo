@@ -4,6 +4,7 @@ import axios from "axios";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./Test.css";
 import { useLocation } from "react-router-dom";
+import API_BASE_URL from "../../config";
 
 const Button = ({ onClick, children, disabled, style }) => (
   <button
@@ -161,7 +162,7 @@ export default function Test() {
     const fetchQuestions = async () => {
       try {
         const response = await axios.post(
-          "http://localhost:5000/api/generate-questions",
+          `${API_BASE_URL}/api/generate-questions`,
           { day, level: skillLevel },
         );
         const normalized = normalizeQuestions(response.data);
@@ -220,7 +221,7 @@ export default function Test() {
         difficulty: skillLevel,
       }));
 
-      const res = await fetch("http://localhost:5000/progress/update", {
+      const res = await fetch(`${API_BASE_URL}/progress/update`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

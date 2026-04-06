@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./Training.css";
+import API_BASE_URL from "../config";
 
 export default function Training() {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ export default function Training() {
     }
 
     try {
-      const res = await fetch("http://localhost:5000/progress/progress", {
+      const res = await fetch(`${API_BASE_URL}/progress/progress`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

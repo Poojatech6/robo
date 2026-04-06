@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./Dashboard.css";
+import API_BASE_URL from "../config";
 
 export default function MentorDashboard() {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ export default function MentorDashboard() {
       }
 
       try {
-        const res = await fetch("http://localhost:5000/mentor/dashboard", {
+        const res = await fetch(`${API_BASE_URL}/mentor/dashboard`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -104,7 +105,7 @@ export default function MentorDashboard() {
       if (student && student.email) {
         try {
           const res = await fetch(
-            `http://localhost:5000/progress/by-email/${encodeURIComponent(student.email)}`,
+            `${API_BASE_URL}/progress/by-email/${encodeURIComponent(student.email)}`,
             {
               method: "GET",
               headers: {
@@ -136,7 +137,7 @@ export default function MentorDashboard() {
           // fetch attempts for the default day using by-email attempts endpoint
           try {
             const r2 = await fetch(
-              `http://localhost:5000/progress/attempts/by-email/${encodeURIComponent(student.email)}/${defaultDay}`,
+              `${API_BASE_URL}/progress/attempts/by-email/${encodeURIComponent(student.email)}/${defaultDay}`,
               {
                 method: "GET",
                 headers: {
@@ -174,7 +175,7 @@ export default function MentorDashboard() {
 
     try {
       const res = await fetch(
-        `http://localhost:5000/progress/attempts/${id}/${day}`,
+        `${API_BASE_URL}/progress/attempts/${id}/${day}`,
         {
           method: "GET",
           headers: {
@@ -197,7 +198,7 @@ export default function MentorDashboard() {
 
       // Determine available days by fetching full progress (so mentor can switch days)
       try {
-        const p = await fetch(`http://localhost:5000/progress/${id}`, {
+        const p = await fetch(`${API_BASE_URL}/progress/${id}`, {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
@@ -247,7 +248,7 @@ export default function MentorDashboard() {
     try {
       if (id) {
         const r = await fetch(
-          `http://localhost:5000/progress/attempts/${id}/${newDay}`,
+          `${API_BASE_URL}/progress/attempts/${id}/${newDay}`,
           {
             method: "GET",
             headers: {
@@ -260,7 +261,7 @@ export default function MentorDashboard() {
         setAttemptData(d);
       } else if (selectedStudent.email) {
         const r = await fetch(
-          `http://localhost:5000/progress/attempts/by-email/${encodeURIComponent(selectedStudent.email)}/${newDay}`,
+          `${API_BASE_URL}/progress/attempts/by-email/${encodeURIComponent(selectedStudent.email)}/${newDay}`,
           {
             method: "GET",
             headers: {
@@ -311,7 +312,7 @@ export default function MentorDashboard() {
                     const authToken = sessionStorage.getItem("token") || token;
                     if (authToken) {
                       try {
-                        await fetch("http://localhost:5000/api/logout", {
+                        await fetch(`${API_BASE_URL}/api/logout`, {
                           method: "POST",
                           headers: {
                             "Content-Type": "application/json",
