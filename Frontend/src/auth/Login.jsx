@@ -1,32 +1,90 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./Login.css";
+import API_BASE_URL from "../config";
 
 export default function Login({ setToken }) {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // NEW: Added role and fullName states
+  const queryParams = new URLSearchParams(location.search);
+  const isMentorMode =
+    queryParams.get("mode") === "mentor" || queryParams.get("admin") === "true";
+
   const [role, setRole] = useState("student");
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
+  const [showMentorToggle, setShowMentorToggle] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [, setTapCount] = useState(0);
+  const tapTimerRef = React.useRef(null);
 
-  // Toast state
   const [toast, setToast] = useState({ message: "", type: "" });
   const [showToast, setShowToast] = useState(false);
 
+  const isMobileDevice = () =>
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    ) ||
+    "ontouchstart" in window ||
+    (window.innerWidth <= 768 && window.innerHeight <= 1024);
+
+  const showNotification = (message, type, duration = 3000) => {
+    setToast({ message, type });
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), duration);
+  };
+
+  const handleLogoTap = () => {
+    if (!isMobileDevice()) return;
+
+    setTapCount((prevCount) => {
+      const newCount = prevCount + 1;
+
+      if (newCount === 5) {
+        setShowMentorToggle(true);
+        showNotification("Mentor mode unlocked", "success", 2000);
+        return 0;
+      }
+
+      if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+      tapTimerRef.current = setTimeout(() => setTapCount(0), 2000);
+
+      return newCount;
+    });
+  };
+
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key === "X") {
+        setShowMentorToggle(true);
+        showNotification("Mentor mode activated", "success", 2000);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+    };
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    // NEW: Dynamically change the payload based on the selected role
     const payload =
       role === "student"
         ? { role: "student", email: email.trim(), password }
         : { role: "mentor", fullName: fullName.trim(), password };
 
     try {
-      const res = await fetch("http://localhost:5000/api/login", {
+      const res = await fetch(`${API_BASE_URL}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -35,54 +93,38 @@ export default function Login({ setToken }) {
       const data = await res.json();
 
       if (!res.ok) {
-        setToast({ message: data.message || "Login failed", type: "error" });
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 3000);
+        showNotification(data.message || "Login failed", "error");
         return;
       }
 
       if (data.token) {
-        // NEW: Update welcome message to handle mentor or student
-        setToast({
-          message: `Welcome back, ${data.fullName || (role === "student" ? "Student" : "Mentor")}!`,
-          type: "success",
-        });
-        setShowToast(true);
+        showNotification(
+          `Welcome back, ${data.fullName || (role === "student" ? "Student" : "Mentor")}!`,
+          "success"
+        );
 
         if (setToken) setToken(data.token);
         sessionStorage.setItem("token", data.token);
-        sessionStorage.setItem("role", data.role || role); // NEW: Save the correct role
-        
-        if (data.fullName) {
-          sessionStorage.setItem("fullName", data.fullName);
-        }
-        
+        sessionStorage.setItem("role", data.role || role);
+        if (data.fullName) sessionStorage.setItem("fullName", data.fullName);
         localStorage.setItem("user", JSON.stringify(data));
 
-        // NEW: Redirect dynamically based on the role
         setTimeout(() => {
           setShowToast(false);
           if (data.role === "mentor" || role === "mentor") {
             navigate("/dashboard/mentor");
           } else {
-            navigate("/dashboard/student"); 
+            navigate("/dashboard/student");
           }
         }, 1500);
-
       } else {
-        setToast({ message: "Login failed: No token received", type: "error" });
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 3000);
+        showNotification("Login failed: No token received", "error");
       }
-
     } catch (error) {
       console.error("Login error:", error);
-      setToast({
-        message: "Server error. Is the Python backend running?",
-        type: "error",
-      });
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
+      showNotification("Server error. Is the Python backend running?", "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -95,31 +137,28 @@ export default function Login({ setToken }) {
 
   return (
     <div className="login-page-wrapper">
-      {/* Toast Notification */}
       {showToast && (
         <div className={`toast ${toast.type}`}>{toast.message}</div>
       )}
 
-      {/* Mini Navbar just for Login Page */}
       <header className="login-hero-section">
-        <div className="login-container">
-          <nav className="login-nav">
-            <div className="logo-wrap">
-              <img src="/images/Logo.png" alt="RoboHub Logo" />
-            </div>
-            <div className="auth-buttons">
-              <button
-                className="btn-back-home"
-                onClick={() => navigate("/")}
-              >
-                <i className="fas fa-arrow-left"></i> Home
-              </button>
-            </div>
-          </nav>
-        </div>
+        <nav className="login-nav">
+          <div
+            className="logo-wrap"
+            onClick={handleLogoTap}
+            style={{ cursor: isMobileDevice() ? "pointer" : "default" }}
+          >
+            <img src="/images/Logo.png" alt="RoboHub Logo" />
+          </div>
+          <div className="auth-buttons">
+            <button className="btn-back-home" onClick={() => navigate("/")}>
+              <i className="fas fa-arrow-left"></i>
+              <span>Home</span>
+            </button>
+          </div>
+        </nav>
       </header>
 
-      {/* Login Section */}
       <section className="login-main-section">
         <div className="login-content-container">
           <h1 className="login-title">Welcome Back</h1>
@@ -128,28 +167,26 @@ export default function Login({ setToken }) {
           </p>
 
           <div className="login-card">
-            
-            {/* NEW: Added Role Selection Toggle */}
-            <div className="role-selection">
-              <button
-                type="button"
-                className={`role-toggle-btn ${role === "student" ? "active" : ""}`}
-                onClick={() => setRole("student")}
-              >
-                Student
-              </button>
-              <button
-                type="button"
-                className={`role-toggle-btn ${role === "mentor" ? "active" : ""}`}
-                onClick={() => setRole("mentor")}
-              >
-                Mentor
-              </button>
-            </div>
+            {(showMentorToggle || isMentorMode) && (
+              <div className="role-selection">
+                <button
+                  type="button"
+                  className={`role-toggle-btn ${role === "student" ? "active" : ""}`}
+                  onClick={() => setRole("student")}
+                >
+                  Student
+                </button>
+                <button
+                  type="button"
+                  className={`role-toggle-btn ${role === "mentor" ? "active" : ""}`}
+                  onClick={() => setRole("mentor")}
+                >
+                  Mentor 👨‍🏫
+                </button>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit}>
-              
-              {/* NEW: Conditional Field Rendering */}
               {role === "student" ? (
                 <div className="form-group">
                   <label>Email Address</label>
@@ -159,6 +196,7 @@ export default function Login({ setToken }) {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@example.com"
                     required
+                    autoComplete="email"
                   />
                 </div>
               ) : (
@@ -170,6 +208,7 @@ export default function Login({ setToken }) {
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Enter your full name"
                     required
+                    autoComplete="name"
                   />
                 </div>
               )}
@@ -182,18 +221,23 @@ export default function Login({ setToken }) {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
+                  autoComplete="current-password"
                 />
               </div>
 
-              <button type="submit" className="login-submit-button">
-                Log In
+              <button
+                type="submit"
+                className="login-submit-button"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Logging in..." : "Log In"}
               </button>
             </form>
           </div>
 
           <p className="login-footer-text">
-            Don’t have an account?{" "}
-            <span onClick={() => navigate("/register")} style={{ cursor: "pointer", color: "#007bff", textDecoration: "underline" }}>Sign up</span>
+            Don't have an account?{" "}
+            <span onClick={() => navigate("/register")}>Sign up</span>
           </p>
         </div>
       </section>
